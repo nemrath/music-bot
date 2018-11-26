@@ -3,6 +3,7 @@ const express = require("express");
 const app = express();
 const WebSocketClient = require("./WebSocketClient");
 const DiscordApi = require("./DiscordApi");
+let config = require("../config");
 
 router.get("/", (req, res) => {
   res.send("Hello Exprejss app!");
@@ -26,4 +27,18 @@ const onMessage = async msg => {
     // console.log(result);
   }
 };
+async function sendOnAwakeMessage() {
+  let result = await DiscordApi.sendMessage(
+    {
+      content: "I am awake"
+    },
+    config.logChannelId
+  );
+  console.log(result);
+}
+
+if (config.logOnStartUp && config.logChannelId) {
+  sendOnAwakeMessage();
+}
+
 new WebSocketClient({ onMessage, logMessages: true });

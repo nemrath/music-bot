@@ -6,9 +6,10 @@ let config = {
   spotifyKey: "key",
   spotifyApiUrl: "url",
   commandPrefix: "krr",
-  logChannel: "4444444444",
+  logChannelId: "488178859976556555",
   notificationUserId: "ddd",
-  googleApiKey: "key"
+  googleApiKey: "key",
+  logOnStartUp: true
 };
 
 module.exports = config;
