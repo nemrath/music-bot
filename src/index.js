@@ -10,7 +10,7 @@ router.get("/", (req, res) => {
 
 app.use("/", router);
 app.listen(8000, () => {
-  console.log("server started");
+  console.log("server started  ");
 });
 
 const onMessage = async msg => {
