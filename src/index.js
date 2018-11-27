@@ -3,6 +3,7 @@ const express = require("express");
 const app = express();
 const WebSocketClient = require("./WebSocketClient");
 const DiscordApi = require("./DiscordApi");
+const sleep = require("util").promisify(setTimeout);
 let config = require("../config");
 
 router.get("/", (req, res) => {
@@ -11,22 +12,29 @@ router.get("/", (req, res) => {
 
 app.use("/", router);
 app.listen(8000, () => {
-  console.log("server started  ");
+  console.log("server started");
 });
 
 const onMessage = async msg => {
-  console.log("ukurkur");
-  if (msg.t === "MESSAGE_CREATE") {
-    let content = msg.d.content;
-    // let result = await DiscordApi.sendMessage(
-    //   {
-    //     content
-    //   },
-    //   msg.d.channel_id
-    // );
-    // console.log(result);
+  if (
+    msg.t === "MESSAGE_CREATE" &&
+    msg.d.content &&
+    msg.d.content.startsWith(config.commandPrefix)
+  ) {
+    let command = msg.d.content.replace(config.commandPrefix, "");
+    if (command === "profile") {
+      let content = JSON.stringify(await DiscordApi.getProfile());
+      let result = await DiscordApi.sendMessage(
+        {
+          content
+        },
+        msg.d.channel_id
+      );
+      console.log(result);
+    }
   }
 };
+
 async function sendOnAwakeMessage() {
   let result = await DiscordApi.sendMessage(
     {

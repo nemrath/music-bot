@@ -5,11 +5,11 @@ let config = {
   databasePassword: "123456",
   spotifyKey: "key",
   spotifyApiUrl: "url",
-  commandPrefix: "krr",
+  commandPrefix: "<<",
   logChannelId: "488178859976556555",
   notificationUserId: "ddd",
   googleApiKey: "key",
-  logOnStartUp: true
+  logOnStartUp: false
 };
 
 module.exports = config;
