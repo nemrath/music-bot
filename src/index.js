@@ -7,7 +7,7 @@ const sleep = require("util").promisify(setTimeout);
 let config = require("../config");
 
 router.get("/", (req, res) => {
-  res.send("Hello Exprejss app!");
+  res.send("Hello Express app!");
 });
 
 app.use("/", router);
