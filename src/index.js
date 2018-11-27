@@ -2,7 +2,11 @@ const router = require("express-promise-router")();
 const express = require("express");
 const app = express();
 const WebSocketClient = require("./WebSocketClient");
+const MeaningExtractor = require("./MeaningExtractor");
+const MeaningHandler = require("./MeaningHandler");
+const Meaning = require("./Meanings");
 const DiscordApi = require("./DiscordApi");
+
 const sleep = require("util").promisify(setTimeout);
 let config = require("../config");
 
@@ -16,37 +20,12 @@ app.listen(8000, () => {
 });
 
 const onMessage = async msg => {
-  if (
-    msg.t === "MESSAGE_CREATE" &&
-    msg.d.content &&
-    msg.d.content.startsWith(config.commandPrefix)
-  ) {
-    let command = msg.d.content.replace(config.commandPrefix, "");
-    if (command === "profile") {
-      let content = JSON.stringify(await DiscordApi.getProfile());
-      let result = await DiscordApi.sendMessage(
-        {
-          content
-        },
-        msg.d.channel_id
-      );
-      console.log(result);
-    }
-  }
+  let meanings = await MeaningExtractor.extractMeanings(msg);
+  let results = await MeaningHandler.handleMeanings(meanings, msg);
 };
 
-async function sendOnAwakeMessage() {
-  let result = await DiscordApi.sendMessage(
-    {
-      content: "I am awake"
-    },
-    config.logChannelId
-  );
-  console.log(result);
-}
-
 if (config.logOnStartUp && config.logChannelId) {
-  sendOnAwakeMessage();
+  MeaningHandler.handleMeaning(Meaning.BOT_STARTED);
 }
 
-new WebSocketClient({ onMessage, logMessages: true });
+new WebSocketClient({ onMessage, logMessages: false });
