@@ -5,10 +5,7 @@ const WebSocketClient = require("./WebSocketClient");
 const MeaningExtractor = require("./MeaningExtractor");
 const MeaningHandler = require("./MeaningHandler");
 const Meaning = require("./Meanings");
-const DiscordApi = require("./DiscordApi");
-
-const sleep = require("util").promisify(setTimeout);
-let config = require("../config");
+const config = require("../config");
 
 router.get("/", (req, res) => {
   res.send("Hello Express app!");
