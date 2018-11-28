@@ -1,13 +1,14 @@
 const router = require("express-promise-router")();
 const express = require("express");
 const app = express();
+const config = require("../config");
 const MusicBot = require('./MusicBot');
 router.get("/", (req, res) => {
     res.send("Hello Express app!");
 });
 
 app.use("/", router);
-app.listen(8000, () => {
+app.listen(config.port, () => {
     console.log("server started");
 });
 
