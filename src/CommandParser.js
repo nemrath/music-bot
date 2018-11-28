@@ -2,13 +2,9 @@ let Meaning = require("./Meanings");
 const config = require("../config");
 
 class CommandParser {
-  static async parse(msg) {
+  static async parse(message) {
     let meanings = [];
-
-    if (!["MESSAGE_CREATE"].includes(msg.t) || msg.portalled) {
-      return meanings;
-    }
-    let content = msg.d.content;
+    let content = message.content;
     if (!content || !content.startsWith(config.commandPrefix)) {
       return [];
     }
@@ -39,7 +35,7 @@ class CommandParser {
         meanings.push({
           ...meaning,
           ...meaningData,
-          channelId: msg.d.channel_id
+          channelId: message.channel_id
         });
       }
     });
@@ -49,7 +45,17 @@ class CommandParser {
 
   static getCommands() {
     return {
-      [Meaning.SHOW_PROFILE]: [{ regex: /^profile/ }]
+      [Meaning.SHOW_PROFILE]: [{ regex: /^profile$/ }],
+        [Meaning.JOIN_VOICE_CHANNEL]: [{ regex: /^join$/ }],
+        [Meaning.LEAVE_VOICE_CHANNEL]: [{ regex: /^leave$/ }],
+        [Meaning.PAUSE_MUSIC]: [{ regex: /^pause$/ }],
+        [Meaning.RESUME_MUSIC]: [{ regex: /^resume$/ }],
+        [Meaning.END_MUSIC]: [{ regex: /^stop$/ }],
+        [Meaning.PLAY_MUSIC]: [{ regex: /^play\s+(?<input>.+)$/ }],
+        [Meaning.SHOW_QUEUE]: [{ regex: /^(q|queue)$/ }],
+        [Meaning.CLEAR_QUEUE]: [{ regex: /^(clear)$/ }],
+        [Meaning.NEXT_SONG]: [{ regex: /^(n|next)$/ }],
+        [Meaning.PREVIOUS_SONG]: [{ regex: /^(prev|previous)$/ }]
     };
   }
 }
