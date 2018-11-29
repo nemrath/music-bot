@@ -195,7 +195,7 @@ class Player {
 
     clearQueue() {
         this.queue = [];
-        this.playIndex = 0;
+        this.playIndex = -1;
     }
 
     getCurrentTrack() {
