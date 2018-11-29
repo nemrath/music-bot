@@ -4,7 +4,7 @@ let config = {
     environment: "dev",
     databasePassword: "123456",
     spotifyKey: "key",
-    spotifyApiUrl: "url",
+    spotifyApiUrl: "https://api.spotify.com/v1",
     commandPrefix: "krr",
     logChannelId: "4444444444",
     notificationUserId: "ddd",
@@ -13,7 +13,7 @@ let config = {
     port: 8000,
     spotifyClientID: oink,
     spotifySecret: oink,
-    spotifyTrackBaseUrl: 'https://open.spotify.com/track/',
+    spotifyBaseUrl: 'https://open.spotify.com',
 };
 
 module.exports = config;

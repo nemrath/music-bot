@@ -13,7 +13,11 @@ class MusicBot {
         this.textChannel = null;
         this.handleMessage = this.handleMessage.bind(this);
         this.handlePlayerError = this.handlePlayerError.bind(this);
+        this.handleEnqueue = this.handleEnqueue.bind(this);
+        this.handleTrackStart = this.handleTrackStart.bind(this);
         this.player.onError(this.handlePlayerError);
+        this.player.onEnqueue(this.handleEnqueue);
+        this.player.onTrackStart(this.handleTrackStart);
         this.connectToDiscord().catch(console.log);
     }
 
@@ -26,11 +30,11 @@ class MusicBot {
 
         let meanings = await MeaningExtractor.extractMeanings(message);
         try {
-            let results = await this.handleMeanings(meanings, message);
-            // console.log(results);
+            await this.handleMeanings(meanings, message);
         } catch (e) {
             await sleep(1000);
             message.reply(MusicBot.createErrorMessage(e));
+            throw e;
         }
 
     }
@@ -56,24 +60,61 @@ class MusicBot {
                 this.player.clearQueue();
                 return await message.channel.send(this.createQueueMessage());
             }
+            case Meaning.SEARCH_TRACK: {
+                let tracks = await Player.search(meaning.query);
+                if (tracks.length) {
+                    this.waitingForSearchResultChoice = true;
+                    this.searchResults = tracks;
+                }
+
+                return await message.channel.send(MusicBot.createSearchResultsMessage(tracks));
+            }
+            case Meaning.CANCEL: {
+                this.waitingForSearchResultChoice = false;
+                this.searchResults = null;
+                if (this.textChannel) {
+                    this.textChannel.send(MusicBot.createShortMessage("Search status:", "canceled"));
+                }
+                break;
+            }
+            case Meaning.NUMBER_ENTERED: {
+                if (this.waitingForSearchResultChoice) {
+                    if (meaning.number >= 0 && meaning.number < this.searchResults.length) {
+
+                        if (!this.isInVoiceChannel()) {
+                            if (!await this.joinUsingMessage(message)) {
+                                return;
+                            }
+                        }
+
+                        let result = this.player.playEnqueue(this.searchResults[meaning.number].url);
+                        this.waitingForSearchResultChoice = false;
+                        this.searchResults = null;
+                        return result;
+                    }
+                }
+                break;
+            }
+            case Meaning.SHOW_NOW_PLAYING: {
+                if (this.textChannel) {
+                    return await this.textChannel.send(this.createNowPlayingMessage());
+                }
+                break;
+            }
             case Meaning.PLAY_MUSIC: {
 
                 if (!this.isInVoiceChannel()) {
-                    await this.joinUsingMessage(message);
+                    if (!await this.joinUsingMessage(message)) {
+                        return;
+                    }
                 }
 
-                let result = this.player.playEnqueue(meaning.input);
-                if (!result) {
-                    // result = await message.reply("Couldnt play song");
-                }
-                return result;
+                return this.player.playEnqueue(meaning.input);
             }
             case Meaning.NEXT_TRACK: {
                 let result = this.player.playNextInQueue();
                 if (!result) {
                     result = await message.reply("Couldnt play track");
-                } else {
-                    result = await message.reply(this.createNowPlayingMessage());
                 }
                 return result;
             }
@@ -82,8 +123,6 @@ class MusicBot {
                 console.log(this.player.playIndex);
                 if (!result) {
                     result = await message.reply("Couldnt play track");
-                } else {
-                    result = await message.reply(this.createNowPlayingMessage());
                 }
                 return result;
             }
@@ -94,7 +133,7 @@ class MusicBot {
                 return this.player.resume();
             }
             case Meaning.END_MUSIC: {
-                return this.player.end();
+                return this.player.stop();
             }
             case Meaning.LEAVE_VOICE_CHANNEL: {
                 return this.leaveVoiceChannel();
@@ -128,21 +167,28 @@ class MusicBot {
     }
 
     async joinUsingMessage(message) {
-        let result = null;
+
         if (message.member.voiceChannel) {
             let connection = await this.joinVoiceChannel(message.member.voiceChannel);
-            if (connection) {
-                result = await message.reply('I have successfully connected to the channel!');
+            if (!connection) {
+                throw Error("could not join the voice channel");
             }
         } else {
-            result = await message.reply('You need to join a voice channel first!');
+            await message.reply('You need to join a voice channel first!');
+            return false;
         }
+
         this.setTextChannel(message.channel);
-        return result;
+        return message.reply('I have successfully connected to the channel!');
     }
 
     leaveVoiceChannel() {
-        this.voiceChannel.leave();
+        this.player.stop();
+
+        if(this.voiceChannel) {
+            this.voiceChannel.leave();
+        }
+
         this.voiceChannel = null;
     }
 
@@ -168,11 +214,11 @@ class MusicBot {
     }
 
     createQueueString() {
-        return this.player.getQueue().map((url, i) => {
+        return this.player.getQueue().map((track, i) => {
             if (i === this.player.getPlayIndex()) {
-                return '* ' + i + ". " + url;
+                return '* ' + i + ". " + track.title;
             }
-            return i + ". " + url;
+            return i + ". " + track.title;
         }).join("\n");
     }
 
@@ -196,8 +242,7 @@ class MusicBot {
                 name: "Queue:",
                 value: queueString
             },
-                {name: "Now playing:", value: nowPlayingString},
-                {name: "playIndex:", value: this.player.getPlayIndex()}
+                {name: "Now playing:", value: nowPlayingString}
             ]
         })
     }
@@ -205,18 +250,50 @@ class MusicBot {
     createNowPlayingString() {
         let track = this.player.getCurrentTrack();
         if (track) {
-            return this.player.getPlayIndex() + ". " + track.name;
+            return this.player.getPlayIndex() + ". " + track.title;
         }
         return "";
     }
 
     createNowPlayingMessage() {
         return MusicBot.createShortMessage("Now playing:",
-            this.player.getPlayIndex() + ". " + this.player.getCurrentTrackName())
+            this.player.getPlayIndex() + ". " + this.player.getCurrentTrackTitle())
     }
 
     isInVoiceChannel() {
         return this.voiceChannel && true;
+    }
+
+    handleEnqueue(tracks) {
+        if (this.textChannel) {
+            let message = tracks.length + " tracks enqued. Currently at: " + this.player.getPlayIndex() + "/" + (this.player.getQueue().length - 1) + ".";
+            this.textChannel.send(MusicBot.createShortMessage("Tracks enqueued", message));
+        }
+    }
+
+    handleTrackStart() {
+        if (this.textChannel) {
+            this.textChannel.send(this.createNowPlayingMessage());
+        }
+    }
+
+    static createSearchResultsString(tracks) {
+        return tracks.map((track, i) => {
+            return i + ". " + track.title;
+        }).join("\n");
+    }
+
+    static createSearchResultsMessage(tracks) {
+        let resultsString = MusicBot.createSearchResultsString(tracks);
+        resultsString = resultsString ? resultsString : "Try a different query.";
+        return new Discord.RichEmbed({
+            title: tracks.length ? "Choose a number or type " + config.commandPrefix + "cancel to cancel:" : "No results found",
+            fields: [{
+                name: "Results:",
+                value: resultsString
+            }
+            ]
+        })
     }
 }
 

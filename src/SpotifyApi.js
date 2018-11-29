@@ -1,6 +1,7 @@
 const config = require("../config");
 const sleep = require('util').promisify(setTimeout);
-
+const fetch = require('node-fetch');
+const FormData = require('form-data');
 class SpotifyApi {
     static async callApi(body, url, method, apiKey = SpotifyApi.bearerKey, withTokenRefresh = true) {
         let headers = {
@@ -23,9 +24,9 @@ class SpotifyApi {
         if (result.error && withTokenRefresh) {
 
             if((Date.now() > SpotifyApi.getKeyExpirationDate())){
-                let {token, expires_in} = await SpotifyApi.getToken();
+                let {access_token: token, expires_in, ...rest} = await SpotifyApi.getToken();
                 if (token && expires_in) {
-                    SpotifyApi.bearerKey = result.token;
+                    SpotifyApi.bearerKey = token;
                     let t = new Date();
                     t.setSeconds(t.getSeconds() + expires_in);
                     SpotifyApi.setKeyExpirationDate(t);
@@ -40,16 +41,23 @@ class SpotifyApi {
     }
 
     static getToken() {
-        let form = new FormData();
-        form.append('grant_type', "client_credentials");
+        let params = {'grant_type': "client_credentials"};
+        const searchParams = Object.keys(params).map((key) => {
+            return encodeURIComponent(key) + '=' + encodeURIComponent(params[key]);
+        }).join('&');
         let headers = {
             Authorization: "Basic " + Buffer.from(config.spotifyClientID + ":" + config.spotifySecret).toString('base64'),
+            'Content-Type':'application/x-www-form-urlencoded'
         };
         return fetch('https://accounts.spotify.com/api/token', {
             method: 'POST',
-            body: form,
+            body: searchParams,
             headers: headers,
-        }).then(response => response.json());
+        }).then(response => {
+            return response.json();
+        }).catch((error,berror)=>{
+            console.log(berror);
+        });
     }
 
     static async getTrack(trackId, apiKey = SpotifyApi.bearerKey) {
