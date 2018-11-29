@@ -216,9 +216,9 @@ class MusicBot {
     createQueueString() {
         return this.player.getQueue().map((track, i) => {
             if (i === this.player.getPlayIndex()) {
-                return '* ' + i + ". " + track.title;
+                return i + ". " +'[' +track.title +'](' + track.url +')';
             }
-            return i + ". " + track.title;
+            return i + ". " +'[' +track.title +'](' + track.url +')';
         }).join("\n");
     }
 
@@ -250,7 +250,7 @@ class MusicBot {
     createNowPlayingString() {
         let track = this.player.getCurrentTrack();
         if (track) {
-            return this.player.getPlayIndex() + ". " + track.title;
+            return this.player.getPlayIndex() + ". " +'[' +track.title +'](' + track.url +')';
         }
         return "";
     }
@@ -268,7 +268,7 @@ class MusicBot {
             time = " " + this.createCurrentTrackTimeString();
         }
         return MusicBot.createShortMessage("Now playing:",
-            this.player.getPlayIndex() + ". " + this.player.getCurrentTrackTitle() + time)
+            this.createNowPlayingString() + time)
     }
 
     isInVoiceChannel() {
@@ -290,7 +290,7 @@ class MusicBot {
 
     static createSearchResultsString(tracks) {
         return tracks.map((track, i) => {
-            return i + ". " + track.title;
+            return i + ". " +'[' +track.title +'](' + track.url +')';
         }).join("\n");
     }
 
