@@ -42,7 +42,7 @@ class Player {
             case InputType.YOUTUBE_PLAYLIST_LINK:
                 return this.getYoutubeTracks(input);
             case InputType.SPOTIFY_TRACK_LINK:
-                return [await this.getYouTubeTrack(input)];
+                return [await this.getSpotifyTrack(input)];
             case InputType.SPOTIFY_PLAYLIST_LINK:
                 return this.getSpotifyTracks(input);
             default:
@@ -388,6 +388,15 @@ class Player {
             voiceConnectionStatus: this.connection ? statusMap[this.connection.status] : "no voice connection",
             dispatcherStatus: this.dispatcher ? (this.dispatcher.destroyed ? "destroyed" : "not destroyed") : "no dispatcher"
         };
+    }
+
+    getYoutubeTracks(input) {
+        return undefined;
+    }
+
+    async getSpotifyTrack(input) {
+        let track = await SpotifyApi.getTrack(input.replace(config.spotifyBaseUrl + "/track/", ""));
+        return Player.searchTracksInYoutube(Player.formatSpotifyTrack(track));
     }
 }
 
