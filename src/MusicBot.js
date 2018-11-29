@@ -257,7 +257,7 @@ class MusicBot {
 
     createNowPlayingMessage() {
         return MusicBot.createShortMessage("Now playing:",
-            this.player.getPlayIndex() + ". " + this.player.getCurrentTrackTitle())
+            this.player.getPlayIndex() + ". " + this.player.getCurrentTrackTitle() + "")
     }
 
     isInVoiceChannel() {

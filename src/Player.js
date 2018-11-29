@@ -147,7 +147,7 @@ class Player {
         if (this.endCallback) {
             this.endCallback(reason);
         }
-        if (!reason && this.hasNextInQueue()) {
+        if (Player.autoEnded() && this.hasNextInQueue()) {
             this.playNextInQueue();
         }
 
@@ -333,6 +333,14 @@ class Player {
             url: result.video_url,
             urlType: InputType.YOUTUBE_TRACK_LINK,
         };
+    }
+
+    static autoEnded(reason) {
+        return ![
+            PlayerEvent.NEXT_SONG_PLAYED,
+            PlayerEvent.PLAYER_STOPPED,
+            PlayerEvent.PREVIOUS_SONG_PLAYED
+        ].includes(reason);
     }
 }
 
