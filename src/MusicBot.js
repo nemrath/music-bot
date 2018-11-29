@@ -97,7 +97,7 @@ class MusicBot {
             }
             case Meaning.SHOW_NOW_PLAYING: {
                 if (this.textChannel) {
-                    return await this.textChannel.send(this.createNowPlayingMessage());
+                    return await this.textChannel.send(this.createNowPlayingMessage(true));
                 }
                 break;
             }
@@ -254,10 +254,21 @@ class MusicBot {
         }
         return "";
     }
-
-    createNowPlayingMessage() {
+    createCurrentTrackTimeString(){
+        let progress = this.player.getCurrentTrackProgress();
+        let duration = this.player.getCurrentTrackDuration();
+        if(progress && duration) {
+            return progress + "/"  +duration;
+        }
+        return false;
+    }
+    createNowPlayingMessage(withTime = false) {
+        let time = "";
+        if(withTime && this.createCurrentTrackTimeString()){
+            time = " " + this.createCurrentTrackTimeString();
+        }
         return MusicBot.createShortMessage("Now playing:",
-            this.player.getPlayIndex() + ". " + this.player.getCurrentTrackTitle() + "")
+            this.player.getPlayIndex() + ". " + this.player.getCurrentTrackTitle() + time)
     }
 
     isInVoiceChannel() {

@@ -342,6 +342,21 @@ class Player {
             PlayerEvent.PREVIOUS_SONG_PLAYED
         ].includes(reason);
     }
+
+    getCurrentTrackProgress() {
+        if(this.dispatcher) {
+            return this.dispatcher.time;
+        }
+        return false;
+    }
+
+    getCurrentTrackDuration() {
+        let track = this.getCurrentTrack();
+        if(track) {
+            return track.duration;
+        }
+        return false;
+    }
 }
 
 module.exports = Player;
