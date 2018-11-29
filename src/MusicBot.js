@@ -297,8 +297,19 @@ class MusicBot {
         if (withTime && this.createCurrentTrackTimeString()) {
             time = " " + this.createCurrentTrackTimeString();
         }
-        return MusicBot.createShortMessage("Now playing:",
-            this.createNowPlayingString() + time)
+        let options = {
+            fields: [{
+                name: "Now playing:",
+                value: this.createNowPlayingString() + time
+            }]
+        };
+        let track = this.player.getCurrentTrack();
+
+        if (track.thumbnail) {
+            options.image = track.thumbnail;
+        }
+
+        return new Discord.RichEmbed(options);
     }
 
     isInVoiceChannel() {
