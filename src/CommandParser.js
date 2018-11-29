@@ -52,6 +52,7 @@ class CommandParser {
             [Meaning.RESUME_MUSIC]: [{regex: /^resume$/}],
             [Meaning.END_MUSIC]: [{regex: /^stop$/}],
             [Meaning.PLAY_MUSIC]: [{regex: /^play\s+(?<input>.+)$/}],
+            [Meaning.PLAY_CURRENT_TRACK]: [{regex: /^play$/}],
             [Meaning.SHOW_QUEUE]: [{regex: /^(q|queue)$/}],
             [Meaning.CLEAR_QUEUE]: [{regex: /^(clear)$/}],
             [Meaning.NEXT_TRACK]: [{regex: /^(n|next)$/}],
@@ -59,6 +60,8 @@ class CommandParser {
             [Meaning.SHOW_NOW_PLAYING]: [{regex: /^(np)$/}],
             [Meaning.SEARCH_TRACK]: [{regex: /^(search\s+(?<query>.+))$/}],
             [Meaning.CANCEL]: [{regex: /^cancel$/}],
+            [Meaning.JUMP_TO_TRACK]: [{regex: /^jump\s+(?<trackNumber>\d+)$/}],
+            [Meaning.STATUS]: [{regex: /^status$/}],
         };
     }
 }

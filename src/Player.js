@@ -10,6 +10,7 @@ class PlayerEvent {
 PlayerEvent.NEXT_SONG_PLAYED = "NEXT_SONG_PLAYED";
 PlayerEvent.PLAYER_STOPPED = "PLAYER_STOPPED";
 PlayerEvent.PREVIOUS_SONG_PLAYED = "PREVIOUS_SONG_PLAYED";
+PlayerEvent.CURRENT_SONG_PLAYED = "CURRENT_SONG_PLAYED";
 
 class InputType {
 
@@ -335,20 +336,58 @@ class Player {
         return !([
             PlayerEvent.NEXT_SONG_PLAYED,
             PlayerEvent.PLAYER_STOPPED,
-            PlayerEvent.PREVIOUS_SONG_PLAYED
+            PlayerEvent.PREVIOUS_SONG_PLAYED,
+            PlayerEvent.CURRENT_SONG_PLAYED
         ].includes(reason));
     }
 
     getCurrentTrackProgress() {
-        return this.dispatcher ? Math.round(this.dispatcher.time/1000) : null;
+        return this.dispatcher ? Math.round(this.dispatcher.time / 1000) : null;
     }
 
     getCurrentTrackDuration() {
         let track = this.getCurrentTrack();
-        if(track) {
+        if (track) {
             return track.duration;
         }
         return false;
+    }
+
+    jumpTo(trackNumber) {
+        if (trackNumber >= 0 && trackNumber < this.getQueue().length) {
+            this.playIndex = trackNumber;
+            return this.playCurrentTrack()
+        }
+        return undefined;
+    }
+
+    playCurrentTrack() {
+
+        if (this.dispatcher) {
+            this.dispatcher.end(PlayerEvent.CURRENT_SONG_PLAYED);
+        }
+
+        if (this.queue.length > 0) {
+            return this.play(this.queue[this.playIndex]);
+        }
+
+        return false;
+
+    }
+
+    getStatus() {
+        let statusMap = {
+            0: "CONNECTED",
+            1: "CONNECTING",
+            2: "AUTHENTICATING",
+            3: "RECONNECTING",
+            4: "DISCONNECTED",
+        };
+        return {
+            hasVoiceConnection: !!this.connection,
+            voiceConnectionStatus: this.connection ? statusMap[this.connection.status] : "no voice connection",
+            dispatcherStatus: this.dispatcher ? (this.dispatcher.destroyed ? "destroyed" : "not destroyed") : "no dispatcher"
+        };
     }
 }
 

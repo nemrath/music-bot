@@ -69,6 +69,31 @@ class MusicBot {
 
                 return await message.channel.send(MusicBot.createSearchResultsMessage(tracks));
             }
+            case Meaning.JUMP_TO_TRACK: {
+                let trackNumber = parseInt(meaning.trackNumber);
+                if (trackNumber >= 0 && trackNumber < this.player.getQueue().length) {
+
+                    if (!this.isInVoiceChannel()) {
+                        if (!await this.joinUsingMessage(message)) {
+                            return;
+                        }
+                    }
+                    return this.player.jumpTo(trackNumber);
+                }
+                break;
+            }
+            case Meaning.PLAY_CURRENT_TRACK: {
+
+                if (this.player.getQueue().length > 0) {
+                    return this.player.playCurrentTrack();
+                }
+
+                if (this.textChannel) {
+                    return this.textChannel.send(MusicBot.createShortMessage("Warning", "Nothing is queued"));
+                }
+
+                return false;
+            }
             case Meaning.CANCEL: {
                 this.waitingForSearchResultChoice = false;
                 this.searchResults = null;
@@ -76,6 +101,9 @@ class MusicBot {
                     this.textChannel.send(MusicBot.createShortMessage("Search status:", "canceled"));
                 }
                 break;
+            }
+            case Meaning.STATUS: {
+                return message.reply(MusicBot.createShortMessage("Player status:", JSON.stringify(this.player.getStatus())));
             }
             case Meaning.NUMBER_ENTERED: {
                 if (this.waitingForSearchResultChoice) {
@@ -185,7 +213,7 @@ class MusicBot {
     leaveVoiceChannel() {
         this.player.stop();
 
-        if(this.voiceChannel) {
+        if (this.voiceChannel) {
             this.voiceChannel.leave();
         }
 
@@ -216,9 +244,9 @@ class MusicBot {
     createQueueString() {
         return this.player.getQueue().map((track, i) => {
             if (i === this.player.getPlayIndex()) {
-                return i + ". " +'[' +track.title +'](' + track.url +')';
+                return i + ". " + '[' + track.title + '](' + track.url + ')';
             }
-            return i + ". " +'[' +track.title +'](' + track.url +')';
+            return i + ". " + '[' + track.title + '](' + track.url + ')';
         }).join("\n");
     }
 
@@ -250,21 +278,23 @@ class MusicBot {
     createNowPlayingString() {
         let track = this.player.getCurrentTrack();
         if (track) {
-            return this.player.getPlayIndex() + ". " +'[' +track.title +'](' + track.url +')';
+            return this.player.getPlayIndex() + ". " + '[' + track.title + '](' + track.url + ')';
         }
         return "";
     }
-    createCurrentTrackTimeString(){
+
+    createCurrentTrackTimeString() {
         let progress = this.player.getCurrentTrackProgress();
         let duration = this.player.getCurrentTrackDuration();
-        if(progress && duration) {
-            return progress + "/"  +duration;
+        if (progress && duration) {
+            return progress + "/" + duration;
         }
         return false;
     }
+
     createNowPlayingMessage(withTime = false) {
         let time = "";
-        if(withTime && this.createCurrentTrackTimeString()){
+        if (withTime && this.createCurrentTrackTimeString()) {
             time = " " + this.createCurrentTrackTimeString();
         }
         return MusicBot.createShortMessage("Now playing:",
@@ -290,7 +320,7 @@ class MusicBot {
 
     static createSearchResultsString(tracks) {
         return tracks.map((track, i) => {
-            return i + ". " +'[' +track.title +'](' + track.url +')';
+            return i + ". " + '[' + track.title + '](' + track.url + ')';
         }).join("\n");
     }
 
