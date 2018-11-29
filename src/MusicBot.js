@@ -68,20 +68,20 @@ class MusicBot {
                 }
                 return result;
             }
-            case Meaning.NEXT_SONG: {
+            case Meaning.NEXT_TRACK: {
                 let result = this.player.playNextInQueue();
                 if (!result) {
-                    result = await message.reply("Couldnt play song");
+                    result = await message.reply("Couldnt play track");
                 } else {
                     result = await message.reply(this.createNowPlayingMessage());
                 }
                 return result;
             }
-            case Meaning.PREVIOUS_SONG: {
+            case Meaning.PREVIOUS_TRACK: {
                 let result = this.player.playPreviousInQueue(this.player);
                 console.log(this.player.playIndex);
                 if (!result) {
-                    result = await message.reply("Couldnt play song");
+                    result = await message.reply("Couldnt play track");
                 } else {
                     result = await message.reply(this.createNowPlayingMessage());
                 }
@@ -203,16 +203,16 @@ class MusicBot {
     }
 
     createNowPlayingString() {
-        let song = this.player.getCurrentSong();
-        if (song) {
-            return this.player.getPlayIndex() + ". " + song.name;
+        let track = this.player.getCurrentTrack();
+        if (track) {
+            return this.player.getPlayIndex() + ". " + track.name;
         }
         return "";
     }
 
     createNowPlayingMessage() {
         return MusicBot.createShortMessage("Now playing:",
-            this.player.getPlayIndex() + ". " + this.player.getCurrentSongName())
+            this.player.getPlayIndex() + ". " + this.player.getCurrentTrackName())
     }
 
     isInVoiceChannel() {

@@ -11,6 +11,9 @@ let config = {
     googleApiKey: "key",
     logOnStartUp: true,
     port: 8000,
+    spotifyClientID: oink,
+    spotifySecret: oink,
+    spotifyTrackBaseUrl: 'https://open.spotify.com/track/',
 };
 
 module.exports = config;

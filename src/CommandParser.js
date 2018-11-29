@@ -54,8 +54,8 @@ class CommandParser {
         [Meaning.PLAY_MUSIC]: [{ regex: /^play\s+(?<input>.+)$/ }],
         [Meaning.SHOW_QUEUE]: [{ regex: /^(q|queue)$/ }],
         [Meaning.CLEAR_QUEUE]: [{ regex: /^(clear)$/ }],
-        [Meaning.NEXT_SONG]: [{ regex: /^(n|next)$/ }],
-        [Meaning.PREVIOUS_SONG]: [{ regex: /^(prev|previous)$/ }]
+        [Meaning.NEXT_TRACK]: [{ regex: /^(n|next)$/ }],
+        [Meaning.PREVIOUS_TRACK]: [{ regex: /^(prev|previous)$/ }]
     };
   }
 }

@@ -1,37 +1,88 @@
 const ytdl = require('ytdl-core');
+const config = require("../config");
 
-class LINK_TYPE {
+
+class InputType {
 
 }
 
-LINK_TYPE.YOUTUBE = "YOUTUBE";
+InputType.YOUTUBE_TRACK_LINK = "YOUTUBE_TRACK_LINK";
+InputType.SPOTIFY_TRACK_LINK = "SPOTIFY_TRACK_LINK";
+InputType.YOUTUBE_PLAYLIST_LINK = "YOUTUBE_PLAYLIST_LINK";
+InputType.SPOTIFY_PLAYLIST_LINK = "SPOTIFY_PLAYLIST_LINK";
 
 class Player {
+
     constructor() {
+        this.spotify
         this.onEnd = this.onEnd.bind(this);
         this.onError = this.onError.bind(this);
         this.handleEnd = this.handleEnd.bind(this);
         this.handleError = this.handleError.bind(this);
         this.playPreviousInQueue = this.playPreviousInQueue.bind(this);
-        this.playIndex = 0;
+        this.playIndex = -1;
+        this.connectToSpotify();
         this.queue = [];
     }
 
-    play(input) {
-        let linkType = LINK_TYPE.YOUTUBE;
+    connectToSpotify() {
+
+        const username = config.spotifyUsername;
+        const password = config.spotifyPassword;
+
+        Spotify.login(username, password, (err, spotify) => {
+            if (err) throw err;
+            this.spotify = spotify;
+        });
+    }
+
+    getTracks(input) {
+        let linkType = this.parseInput(input);
         switch (linkType) {
-            case LINK_TYPE.YOUTUBE:
-                return this.playYouTube(input);
+            case InputType.YOUTUBE_TRACK_LINK:
+                return this.playYouTubeTrack(input);
+            case InputType.SPOTIFY_TRACK_LINK:
+                return this.playSpotifyTrack(input);
             default:
-                return this.playYouTube(input);
+                throw Error("unknown input");
         }
     }
 
-    playYouTube(youtubeLink = 'https://www.youtube.com/watch?v=52-OszXrQwU') {
+    async play(input) {
+        let linkType = this.parseInput(input);
+        let track = null;
+        switch (linkType) {
+            case InputType.YOUTUBE_TRACK_LINK:
+                track = await this.playYouTubeTrack(input);
+                break;
+            case InputType.SPOTIFY_TRACK_LINK:
+                track = await this.playSpotifyTrack(input);
+                break;
+            default:
+                throw Error("unknown input");
+        }
+        this.handleTrackStart(track);
+        return track;
+    }
+
+    playYouTubeTrack(youtubeLink = 'https://www.youtube.com/watch?v=52-OszXrQwU') {
         let stream = ytdl(youtubeLink,
             {filter: 'audioonly'});
         let dispatcher = this.playStream(stream);
-        return {stream, paused: dispatcher.paused};
+        return new Promise((resolve, reject) => {
+            stream.on('info', info => {
+                resolve([info]);
+            });
+        });
+
+    }
+
+    async playSpotifyTrack(spotifyLink = 'https://open.spotify.com/track/5k4sO8x7TS1iiCO83Y61iw') {
+        let route = spotifyLink.replace("https://open.spotify.com", "");
+        if (route.startsWith("/track/")) {
+            let trackId = route.replace("/track/", "");
+            return [await SpotifyApi.getTrack(trackId)];
+        }
     }
 
     setConnection(connection) {
@@ -47,7 +98,6 @@ class Player {
     setDispatcher(dispatcher) {
         this.dispatcher = dispatcher;
         dispatcher.on('end', this.handleEnd);
-
         dispatcher.on('error', this.handleError);
     }
 
@@ -63,11 +113,33 @@ class Player {
         this.dispatcher.end();
     }
 
-    playEnqueue(input) {
-        this.queue.push(input);
-        if (this.playIndex === this.queue.length - 1) {
-            return this.play(this.queue[this.playIndex]);
+    async playEnqueue(input) {
+
+        if (Player.notPlaying() && Player.isYoutubeTrackLink(input)) {
+            let track = await this.play(input);
+            this.queue.push(track);
+            this.playIndex +=1;
+            return [track];
+        } else {
+            let tracks = await this.getTracks(input);
+            this.queue.push(...tracks);
+            this.handleEnqueue(tracks);
+            if(Player.notPlaying()){
+                await this.playNextInQueue();
+            }
+            return tracks;
+
         }
+
+
+    }
+
+    onTrackStart(callback) {
+        this.onTrackStartCallback = callback;
+    }
+
+    onEnqueue(callback){
+        this.onEnqueueCallback = callback;
     }
 
     onEnd(callback) {
@@ -82,7 +154,12 @@ class Player {
         if (this.endCallback) {
             this.endCallback();
         }
-        this.playNextInQueue();
+        if(this.hasNextInQueue()){
+            this.playNextInQueue();
+        } else {
+            this.dispatcher = null;
+        }
+
     }
 
     handleError(error) {
@@ -91,18 +168,18 @@ class Player {
         }
     }
 
-   playNextInQueue() {
+    playNextInQueue() {
         if (this.playIndex + 1 < this.queue.length) {
             this.playIndex += 1;
-            return this.play(this.queue[this.playIndex]);
+            return this.play(this.queue[this.playIndex].url);
         }
     }
 
     playPreviousInQueue() {
         if ((this.playIndex - 1) >= 0) {
-            this.playIndex = this.playIndex  - 1;
+            this.playIndex = this.playIndex - 1;
             if (this.playIndex < this.queue.length) {
-                return this.play(this.queue[this.playIndex]);
+                return this.play(this.queue[this.playIndex].url);
             }
         }
         console.log(this.playIndex);
@@ -121,20 +198,73 @@ class Player {
         this.playIndex = 0;
     }
 
-    getCurrentSong() {
-        let song = this.queue[this.getPlayIndex()];
-        if (song) {
-            return {
-                name: song,
-                url: song
-            }
+    getCurrentTrack() {
+        let track = this.queue[this.getPlayIndex()];
+        if (track) {
+            return {...track, time: this.getCurrentTrackTime() } ;
         }
         return false;
     }
 
-    getCurrentSongName() {
-        let song = this.getCurrentSong();
-        return song ? song.name : null;
+    getCurrentTrackName() {
+        let track = this.getCurrentTrack();
+        return track ? track.name : null;
+    }
+
+    parseInput(input) {
+        if (Player.isYoutubeTrackLink(input)) {
+            return InputType.YOUTUBE_TRACK_LINK;
+        }
+        if (Player.isSpotifyTrackLink(input)) {
+            return InputType.SPOTIFY_TRACK_LINK;
+        }
+        if (Player.isYoutubePlaylistLink(input)) {
+            return InputType.YOUTUBE_PLAYLIST_LINK;
+        }
+        if (Player.isSpotifyPlaylistLink(input)) {
+            return InputType.SPOTIFY_PLAYLIST_LINK;
+        }
+        return false;
+    }
+
+    static isYoutubeTrackLink(input) {
+        return ytdl.validateURL(input);
+    }
+
+    static isSpotifyTrackLink(input) {
+        return input.startsWith(config.spotifyTrackBaseUrl + "/track/");
+    }
+
+    static isYoutubePlaylistLink(input) {
+        return ytdl.validateURL(input);
+    }
+
+    static isSpotifyPlaylistLink(input) {
+        return input.startsWith(config.spotifyTrackBaseUrl + "/playlist/");
+    }
+
+    static notPlaying() {
+        return !this.dispatcher;
+    }
+
+    handleEnqueue(tracks){
+        if(this.onEnqueueCallback){
+            this.onEnqueueCallback(tracks);
+        }
+    }
+
+    hasNextInQueue() {
+        return this.playIndex + 1 < this.queue.length;
+    }
+
+    handleTrackStart(track) {
+        if(this.onTrackStartCallback){
+            this.onTrackStartCallback(track);
+        }
+    }
+
+    getCurrentTrackTime() {
+        return this.dispatcher ? this.dispatcher.time : null;
     }
 }
 
