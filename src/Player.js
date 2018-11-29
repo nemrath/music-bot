@@ -143,13 +143,12 @@ class Player {
     }
 
     handleEnd(reason) {
+        this.dispatcher = null;
         if (this.endCallback) {
             this.endCallback(reason);
         }
         if (!reason && this.hasNextInQueue()) {
             this.playNextInQueue();
-        } else {
-            this.dispatcher = null;
         }
 
     }
