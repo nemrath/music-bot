@@ -244,7 +244,7 @@ class MusicBot {
     createQueueString() {
         return this.player.getQueue().map((track, i) => {
             if (i === this.player.getPlayIndex()) {
-                return i + ". " + '[' + track.title + '](' + track.url + ')';
+                return "* " + i + ". " + '[' + track.title + '](' + track.url + ')';
             }
             return i + ". " + '[' + track.title + '](' + track.url + ')';
         }).join("\n");

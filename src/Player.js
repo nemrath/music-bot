@@ -1,7 +1,9 @@
 const ytdl = require('ytdl-core');
 const config = require("../config");
 const SpotifyApi = require("./SpotifyApi");
+const ypi = require('youtube-playlist-info');
 const ytSearch = require("youtube-search");
+const YouTubeApi = require("./YouTubeApi");
 
 class PlayerEvent {
 
@@ -72,7 +74,7 @@ class Player {
         let dispatcher = this.playStream(stream);
         return new Promise((resolve, reject) => {
             stream.on('info', info => {
-                resolve([info]);
+                resolve(info);
             });
         });
 
@@ -237,7 +239,7 @@ class Player {
     }
 
     static isYoutubePlaylistLink(input) {
-        return ytdl.validateURL(input);
+        return input.startsWith("https://www.youtube.com/playlist?list=");
     }
 
     static isSpotifyPlaylistLink(input) {
@@ -332,6 +334,13 @@ class Player {
         };
     }
 
+    static formatYoutubePlaylistItemResult(result) {
+        return {
+            title: result.title,
+            url: 'https://www.youtube.com/watch?v=' + result.resourceId.videoId,
+            urlType: InputType.YOUTUBE_TRACK_LINK,
+        };
+    }
     static autoEnded(reason) {
         return !([
             PlayerEvent.NEXT_SONG_PLAYED,
@@ -390,8 +399,14 @@ class Player {
         };
     }
 
-    getYoutubeTracks(input) {
-        return undefined;
+    async getYoutubeTracks(input) {
+        let id = input.replace("https://www.youtube.com/playlist?list=", "");
+        let playlist =  await YouTubeApi.getPLaylist(id);
+        if(playlist) {
+            return playlist.items.map(result => Player.formatYoutubePlaylistItemResult(result.snippet));
+        }
+        return false;
+
     }
 
     async getSpotifyTrack(input) {
