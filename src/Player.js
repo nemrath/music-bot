@@ -1,7 +1,6 @@
 const ytdl = require('ytdl-core');
 const config = require("../config");
 const SpotifyApi = require("./SpotifyApi");
-const ypi = require('youtube-playlist-info');
 const ytSearch = require("youtube-search");
 const YouTubeApi = require("./YouTubeApi");
 
