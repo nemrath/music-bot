@@ -147,7 +147,7 @@ class Player {
         if (this.endCallback) {
             this.endCallback(reason);
         }
-        if (Player.autoEnded() && this.hasNextInQueue()) {
+        if (Player.autoEnded(reason) && this.hasNextInQueue()) {
             this.playNextInQueue();
         }
 
@@ -201,7 +201,7 @@ class Player {
     getCurrentTrack() {
         let track = this.queue[this.getPlayIndex()];
         if (track) {
-            return {...track, time: this.getCurrentTrackTime()};
+            return {...track, time: this.getCurrentTrackProgress()};
         }
         return false;
     }
@@ -261,10 +261,6 @@ class Player {
         if (this.onTrackStartCallback) {
             this.onTrackStartCallback(track);
         }
-    }
-
-    getCurrentTrackTime() {
-        return this.dispatcher ? this.dispatcher.time : null;
     }
 
     async getSpotifyTracks(input) {
@@ -336,18 +332,15 @@ class Player {
     }
 
     static autoEnded(reason) {
-        return ![
+        return !([
             PlayerEvent.NEXT_SONG_PLAYED,
             PlayerEvent.PLAYER_STOPPED,
             PlayerEvent.PREVIOUS_SONG_PLAYED
-        ].includes(reason);
+        ].includes(reason));
     }
 
     getCurrentTrackProgress() {
-        if(this.dispatcher) {
-            return this.dispatcher.time;
-        }
-        return false;
+        return this.dispatcher ? Math.round(this.dispatcher.time/1000) : null;
     }
 
     getCurrentTrackDuration() {
