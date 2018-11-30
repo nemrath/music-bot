@@ -328,7 +328,7 @@ class Player {
         return {
             title: result.title,
             duration: parseInt(result.length_seconds),
-            thumbnail: result.thumbnail_url,
+            thumbnail: {url:result.thumbnail_url},
             url: result.video_url,
             urlType: InputType.YOUTUBE_TRACK_LINK,
         };
