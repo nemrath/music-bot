@@ -293,7 +293,7 @@ class Player {
                 title: results[0].title,
                 url: results[0].link,
                 urlType: InputType.YOUTUBE_TRACK_LINK,
-                thumbnail: results[0].thumbnails.default
+                thumbnail: results[0].thumbnails ? results[0].thumbnails.default: null
             };
         }
         return {...track, title: searchString, url: null};
@@ -339,7 +339,7 @@ class Player {
             title: result.title,
             url: 'https://www.youtube.com/watch?v=' + result.resourceId.videoId,
             urlType: InputType.YOUTUBE_TRACK_LINK,
-            thumbnail: result.thumbnails.default
+            thumbnail: result.thumbnails ? result.thumbnails.default : null
         };
     }
     static autoEnded(reason) {
