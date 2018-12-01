@@ -55,7 +55,7 @@ class MusicBot {
                 return await message.channel.send(MusicBot.createShortMessage("Profile:", content));
             }
             case Meaning.SHOW_QUEUE: {
-                return await message.channel.send(this.createQueueMessage(meaning.pageNr));
+                return await message.channel.send(this.createQueueMessage(meaning.pageNr ? meaning.pageNr - 1 : 0));
             }
             case Meaning.CLEAR_QUEUE: {
                 this.player.clearQueue();
@@ -262,11 +262,17 @@ class MusicBot {
 
     createQueueMessage(pageNr = 0) {
 
+        if(pageNr < 0) {
+            pageNr = 0;
+        }
+
+        let queueLength = this.player.getQueue().length;
         let queueArray = this.createQueueArray();
         queueArray = queueArray.length ? queueArray : "The queue is empty";
         let nowPlayingString = this.createNowPlayingString();
         nowPlayingString = nowPlayingString ? nowPlayingString : "Nothing is playing";
-        return new Discord.RichEmbed(MessageFormatter.createMessage({
+
+        let messages = MessageFormatter.createMessages({
             fields: [{
                 name: "Queue:",
                 value: queueArray
@@ -274,8 +280,12 @@ class MusicBot {
             ],
             footerFields: [
                 {name: "Now playing:", value: nowPlayingString}
-            ]
-        }, pageNr))
+            ],
+            footer: {text: 'Page xxxx/xxxx (xxxx  entries)' }
+        });
+
+        let message = messages[pageNr];
+        return new Discord.RichEmbed({...message, footer:{text: 'Page '+ (pageNr + 1)+'/'+messages.length+' (' + queueLength + '  entries)' }});
     }
 
     createNowPlayingString() {
