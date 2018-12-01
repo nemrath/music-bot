@@ -4,6 +4,7 @@ const config = require("../config");
 const Discord = require("discord.js");
 const DiscordApi = require("./DiscordApi");
 const Player = require("./Player");
+const MessageFormatter = require("./MessageFormatter");
 const sleep = require("util").promisify(setTimeout);
 
 class MusicBot {
@@ -54,7 +55,7 @@ class MusicBot {
                 return await message.channel.send(MusicBot.createShortMessage("Profile:", content));
             }
             case Meaning.SHOW_QUEUE: {
-                return await message.channel.send(this.createQueueMessage());
+                return await message.channel.send(this.createQueueMessage(meaning.pageNr));
             }
             case Meaning.CLEAR_QUEUE: {
                 this.player.clearQueue();
@@ -241,13 +242,13 @@ class MusicBot {
         })
     }
 
-    createQueueString() {
+    createQueueArray() {
         return this.player.getQueue().map((track, i) => {
             if (i === this.player.getPlayIndex()) {
                 return "* " + i + ". " + '[' + track.title + '](' + track.url + ')';
             }
             return i + ". " + '[' + track.title + '](' + track.url + ')';
-        }).join("\n");
+        });
     }
 
     static createShortMessage(name, value) {
@@ -259,20 +260,22 @@ class MusicBot {
         })
     }
 
-    createQueueMessage() {
+    createQueueMessage(pageNr = 0) {
 
-        let queueString = this.createQueueString();
-        queueString = queueString ? queueString : "The queue is empty";
+        let queueArray = this.createQueueArray();
+        queueArray = queueArray.length ? queueArray : "The queue is empty";
         let nowPlayingString = this.createNowPlayingString();
         nowPlayingString = nowPlayingString ? nowPlayingString : "Nothing is playing";
-        return new Discord.RichEmbed({
+        return new Discord.RichEmbed(MessageFormatter.createMessage({
             fields: [{
                 name: "Queue:",
-                value: queueString
-            },
+                value: queueArray
+            }
+            ],
+            footerFields: [
                 {name: "Now playing:", value: nowPlayingString}
             ]
-        })
+        }, pageNr))
     }
 
     createNowPlayingString() {
@@ -329,23 +332,23 @@ class MusicBot {
         }
     }
 
-    static createSearchResultsString(tracks) {
+    static createSearchResultsArray(tracks) {
         return tracks.map((track, i) => {
             return i + ". " + '[' + track.title + '](' + track.url + ')';
-        }).join("\n");
+        });
     }
 
-    static createSearchResultsMessage(tracks) {
-        let resultsString = MusicBot.createSearchResultsString(tracks);
-        resultsString = resultsString ? resultsString : "Try a different query.";
-        return new Discord.RichEmbed({
+    static createSearchResultsMessage(tracks, pageNr = 0) {
+        let resultsArray = MusicBot.createSearchResultsArray(tracks);
+        resultsArray = resultsArray.length ? resultsArray : "Try a different query.";
+        return new Discord.RichEmbed(MessageFormatter.createMessage({
             title: tracks.length ? "Choose a number or type " + config.commandPrefix + "cancel to cancel:" : "No results found",
             fields: [{
                 name: "Results:",
-                value: resultsString
+                value: resultsArray
             }
             ]
-        })
+        }, pageNr))
     }
 }
 

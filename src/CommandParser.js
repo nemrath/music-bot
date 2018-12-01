@@ -53,7 +53,7 @@ class CommandParser {
             [Meaning.END_MUSIC]: [{regex: /^stop$/}],
             [Meaning.PLAY_MUSIC]: [{regex: /^play\s+(?<input>.+)$/}],
             [Meaning.PLAY_CURRENT_TRACK]: [{regex: /^play$/}],
-            [Meaning.SHOW_QUEUE]: [{regex: /^(q|queue)$/}],
+            [Meaning.SHOW_QUEUE]: [{regex: /^(q|queue)(\s+(?<pageNr>\d+))?$/}],
             [Meaning.CLEAR_QUEUE]: [{regex: /^(clear)$/}],
             [Meaning.NEXT_TRACK]: [{regex: /^(n|next)$/}],
             [Meaning.PREVIOUS_TRACK]: [{regex: /^(prev|previous)$/}],

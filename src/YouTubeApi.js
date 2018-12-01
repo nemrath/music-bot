@@ -12,7 +12,7 @@ class YouTubeApi {
     }
 
     static getPLaylist(id){
-        return YouTubeApi.callApi('/playlistItems?part=snippet&playlistId=' +id);
+        return YouTubeApi.callApi('/playlistItems?part=snippet&maxResults=50&playlistId=' +id);
     }
 }
 
