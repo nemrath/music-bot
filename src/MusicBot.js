@@ -70,6 +70,12 @@ class MusicBot {
 
                 return await message.channel.send(MusicBot.createSearchResultsMessage(tracks));
             }
+            case Meaning.SHOW_SEARCH_RESULT_PAGE: {
+                if(this.waitingForSearchResultChoice &&  this.searchResults.length > 0) {
+                    return await message.channel.send(MusicBot.createSearchResultsMessage(this.searchResults, meaning.pageNr - 1));
+                }
+                break;
+            }
             case Meaning.JUMP_TO_TRACK: {
                 let trackNumber = parseInt(meaning.trackNumber);
                 if (trackNumber >= 0 && trackNumber < this.player.getQueue().length) {
@@ -349,16 +355,27 @@ class MusicBot {
     }
 
     static createSearchResultsMessage(tracks, pageNr = 0) {
+
+        if(pageNr < 0) {
+            pageNr = 0;
+        }
+
         let resultsArray = MusicBot.createSearchResultsArray(tracks);
         resultsArray = resultsArray.length ? resultsArray : "Try a different query.";
-        return new Discord.RichEmbed(MessageFormatter.createMessage({
-            title: tracks.length ? "Choose a number or type " + config.commandPrefix + "cancel to cancel:" : "No results found",
+
+        let messages = MessageFormatter.createMessages({
+            title: tracks.length ? "Choose a number, type " + config.commandPrefix + "cancel to cancel or "  + config.commandPrefix + "s x to go to page x:" : "No results found",
+
             fields: [{
-                name: "Results:",
+                name:"Results:",
                 value: resultsArray
             }
-            ]
-        }, pageNr))
+            ],
+            footer: {text: 'Page xxxx/xxxx (xxxx  entries)' }
+        });
+
+        let message = messages[pageNr];
+        return new Discord.RichEmbed({...message, footer:{text: 'Page '+ (pageNr + 1)+'/'+messages.length+' (' + tracks.length + '  results)' }});
     }
 }
 

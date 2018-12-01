@@ -308,7 +308,7 @@ class Player {
 
     static async search(query) {
         var opts = {
-            maxResults: 10,
+            maxResults: 50,
             key: config.googleApiKey,
             type: 'video'
         };

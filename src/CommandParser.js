@@ -59,6 +59,7 @@ class CommandParser {
             [Meaning.PREVIOUS_TRACK]: [{regex: /^(prev|previous)$/}],
             [Meaning.SHOW_NOW_PLAYING]: [{regex: /^(np)$/}],
             [Meaning.SEARCH_TRACK]: [{regex: /^(search\s+(?<query>.+))$/}],
+            [Meaning.SHOW_SEARCH_RESULT_PAGE]: [{regex: /^(s\s+(?<pageNr>\d+))$/}],
             [Meaning.CANCEL]: [{regex: /^cancel$/}],
             [Meaning.JUMP_TO_TRACK]: [{regex: /^jump\s+(?<trackNumber>\d+)$/}],
             [Meaning.STATUS]: [{regex: /^status$/}],
