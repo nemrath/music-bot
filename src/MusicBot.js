@@ -267,11 +267,6 @@ class MusicBot {
     }
 
     createQueueMessage(pageNr = 0) {
-
-        if(pageNr < 0) {
-            pageNr = 0;
-        }
-
         let queueLength = this.player.getQueue().length;
         let queueArray = this.createQueueArray();
         queueArray = queueArray.length ? queueArray : "The queue is empty";
@@ -355,11 +350,6 @@ class MusicBot {
     }
 
     static createSearchResultsMessage(tracks, pageNr = 0) {
-
-        if(pageNr < 0) {
-            pageNr = 0;
-        }
-
         let resultsArray = MusicBot.createSearchResultsArray(tracks);
         resultsArray = resultsArray.length ? resultsArray : "Try a different query.";
 
