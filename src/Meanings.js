@@ -20,5 +20,6 @@ Meaning.CANCEL= "CANCEL";
 Meaning.PLAY_CURRENT_TRACK= "PLAY_CURRENT_TRACK";
 Meaning.STATUS = "STATUS";
 Meaning.SHOW_SEARCH_RESULT_PAGE = "SHOW_SEARCH_RESULT_PAGE";
+Meaning.SEEK = "SEEK";
 
 module.exports = Meaning;

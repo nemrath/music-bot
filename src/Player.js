@@ -1,8 +1,11 @@
+const { PassThrough } = require('stream');
+
 const ytdl = require('ytdl-core');
 const config = require("../config");
 const SpotifyApi = require("./SpotifyApi");
 const ytSearch = require("youtube-search");
 const YouTubeApi = require("./YouTubeApi");
+const TrackSearcher = require("./TrackSearcher");
 
 class PlayerEvent {
 
@@ -12,6 +15,7 @@ PlayerEvent.NEXT_SONG_PLAYED = "NEXT_SONG_PLAYED";
 PlayerEvent.PLAYER_STOPPED = "PLAYER_STOPPED";
 PlayerEvent.PREVIOUS_SONG_PLAYED = "PREVIOUS_SONG_PLAYED";
 PlayerEvent.CURRENT_SONG_PLAYED = "CURRENT_SONG_PLAYED";
+PlayerEvent.SEEKING = "SEEKING";
 
 class InputType {
 
@@ -31,6 +35,7 @@ class Player {
         this.handleEnd = this.handleEnd.bind(this);
         this.handleError = this.handleError.bind(this);
         this.playPreviousInQueue = this.playPreviousInQueue.bind(this);
+        this.stream = new PassThrough();
         this.playIndex = -1;
         this.queue = [];
     }
@@ -91,10 +96,31 @@ class Player {
         this.connection = connection;
     }
 
-    playStream(stream) {
-        const dispatcher = this.connection.playStream(stream);
+    playStream(stream, options = {}) {
+
+        options = {
+            seek: 0,
+            volume: 1,
+            passes: 1,
+            bitrate: 'auto',
+            ...options
+        };
+
+        const dispatcher = this.connection.playStream(stream, options);
+        this.stream = stream;
         this.setDispatcher(dispatcher);
         return dispatcher;
+    }
+
+    seek(time){
+        if(this.stream) {
+
+            if (this.dispatcher) {
+                this.dispatcher.end(PlayerEvent.SEEKING);
+            }
+
+            this.playStream(this.stream, {seek: time});
+        }
     }
 
     setDispatcher(dispatcher) {
@@ -149,8 +175,15 @@ class Player {
         if (this.endCallback) {
             this.endCallback(reason);
         }
-        if (Player.autoEnded(reason) && this.hasNextInQueue()) {
+
+        if (!Player.autoEnded(reason)) {
+            return;
+        }
+
+        if (this.hasNextInQueue()) {
             this.playNextInQueue();
+        } else {
+            this.autoPlay();
         }
 
     }
@@ -293,7 +326,7 @@ class Player {
                 title: results[0].title,
                 url: results[0].link,
                 urlType: InputType.YOUTUBE_TRACK_LINK,
-                thumbnail: results[0].thumbnails ? results[0].thumbnails.default: null
+                thumbnail: results[0].thumbnails ? results[0].thumbnails.default : null
             };
         }
         return {...track, title: searchString, url: null};
@@ -306,19 +339,6 @@ class Player {
         }
     }
 
-    static async search(query) {
-        var opts = {
-            maxResults: 50,
-            key: config.googleApiKey,
-            type: 'video'
-        };
-        let {results, ...rest} = await ytSearch(query, opts);
-        if (results.length) {
-            return results.map(result => ({title: result.title, url: result.link}));
-        }
-        return [];
-    }
-
     async getYouTubeTrack(input) {
         let result = await ytdl.getInfo(input);
         return Player.formatYoutubeResult(result);
@@ -328,7 +348,7 @@ class Player {
         return {
             title: result.title,
             duration: parseInt(result.length_seconds),
-            thumbnail: {url:result.thumbnail_url},
+            thumbnail: {url: result.thumbnail_url},
             url: result.video_url,
             urlType: InputType.YOUTUBE_TRACK_LINK,
         };
@@ -342,12 +362,14 @@ class Player {
             thumbnail: result.thumbnails ? result.thumbnails.default : null
         };
     }
+
     static autoEnded(reason) {
         return !([
             PlayerEvent.NEXT_SONG_PLAYED,
             PlayerEvent.PLAYER_STOPPED,
             PlayerEvent.PREVIOUS_SONG_PLAYED,
-            PlayerEvent.CURRENT_SONG_PLAYED
+            PlayerEvent.CURRENT_SONG_PLAYED,
+            PlayerEvent.SEEKING
         ].includes(reason));
     }
 
@@ -402,8 +424,8 @@ class Player {
 
     async getYoutubeTracks(input) {
         let id = input.replace("https://www.youtube.com/playlist?list=", "");
-        let playlist =  await YouTubeApi.getPLaylist(id);
-        if(playlist) {
+        let playlist = await YouTubeApi.getPLaylist(id);
+        if (playlist) {
             return playlist.items.map(result => Player.formatYoutubePlaylistItemResult(result.snippet));
         }
         return false;
@@ -413,6 +435,30 @@ class Player {
     async getSpotifyTrack(input) {
         let track = await SpotifyApi.getTrack(input.replace(config.spotifyBaseUrl + "/track/", ""));
         return Player.searchTracksInYoutube(Player.formatSpotifyTrack(track));
+    }
+
+    async autoPlay() {
+        let lastTrack = this.getLastInQueue();
+
+        if (lastTrack) {
+            let [track] = await TrackSearcher.searchRelatedTracks(lastTrack);
+            if (track) {
+                return this.play(track);
+            }
+        }
+    }
+
+    getLastInQueue() {
+
+        if (this.queue.length > !0) {
+            return false;
+        }
+
+        return this.queue[this.queue.length - 1];
+    }
+
+    getStream() {
+        return this.stream;
     }
 }
 

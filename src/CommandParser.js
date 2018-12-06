@@ -63,6 +63,7 @@ class CommandParser {
             [Meaning.CANCEL]: [{regex: /^cancel$/}],
             [Meaning.JUMP_TO_TRACK]: [{regex: /^jump\s+(?<trackNumber>\d+)$/}],
             [Meaning.STATUS]: [{regex: /^status$/}],
+            [Meaning.SEEK]: [{regex: /^seek\s+(?<time>\d+)$/}],
         };
     }
 }

@@ -1,124 +1,159 @@
 #!/usr/bin/env node
-let config = require("../config");
-var Client = require("websocket").client;
+const Client = require("websocket").client;
+
 class WebSocketClient {
-  constructor(options) {
-    this.connect(options);
-  }
 
-  connect(options) {
-    let {
-      onMessage,
-      apiKey = config.apiKey,
-      serverUrl = "wss://gateway.discord.gg/?v=6&encoding=json",
-      logMessages = false
-    } = options;
+    constructor(options) {
+        this.handleConnect = this.handleConnect.bind(this);
+        this.handleError = this.handleError.bind(this);
+        this.handleClose = this.handleClose.bind(this);
+        this.handleMessage = this.handleMessage.bind(this);
+        this.connect(options);
+    }
 
-    let self = this;
-    this.onMessage = onMessage;
-    this.logMessages = logMessages;
-    this.sendHeardBeat = this.sendHeardBeat.bind(this);
-    this.processMessage = this.processMessage.bind(this);
+    connect(options) {
+        let {
+            onError,
+            onClose,
+            onConnect,
+            onMessage,
+            serverUrl,
+            logMessages = false
+        } = options;
 
-    this.client = new Client();
-    this.seq = null;
-    this.client.on("connectFailed", function(error) {
-      console.log("Connect Error: " + error.toString());
-    });
-    this.client.on("connect", connection => {
-      self.connection = connection;
-      console.log("WebSocket Client Connected");
+        this.onConnect = onConnect;
+        this.onError = onError;
+        this.onClose = onClose;
+        this.onMessage = onMessage;
+        this.logMessages = logMessages;
 
-      this.sendIdent(connection, apiKey);
+        this.client = new Client();
 
-      setTimeout(() => {
-        this.sendHeartbeatSetTimeout(connection);
-      }, 7000);
+        this.client.on("connectFailed", error => {
+            this.handleError(error);
+        });
 
-      connection.on("error", function(error) {
-        console.log("Connection Error: " + error.toString());
-        if (config.autoReconnect) {
-          self.client.connect(serverUrl);
+        this.client.on("connect", connection => {
+            this.handleConnect(connection);
+        });
+
+        if(serverUrl){
+            this.client.connect(serverUrl);
+        } else {
+            throw Error("no serverUrl provided");
         }
-      });
 
-      connection.on("close", function() {
-        console.log("echo-protocol Connection Closed");
-        if (config.autoReconnect) {
-          self.client.connect(serverUrl);
+    }
+
+    // sendIdent(connection, apiKey = config.apiKey) {
+    //     connection.sendUTF(
+    //         JSON.stringify({
+    //             op: 2,
+    //             d: {
+    //                 token: apiKey,
+    //                 properties: {
+    //                     os: "Windows",
+    //                     browser: "Chrome",
+    //                     device: "",
+    //                     browser_user_agent:
+    //                         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36",
+    //                     browser_version: "67.0.3396.99",
+    //                     os_version: "10",
+    //                     referrer: "https://discordapp.com/",
+    //                     referring_domain: "discordapp.com",
+    //                     referrer_current: "https://discordapp.com/",
+    //                     referring_domain_current: "discordapp.com",
+    //                     release_channel: "stable",
+    //                     client_build_number: 18947
+    //                 },
+    //                 presence: {status: "online", since: 0, afk: false, game: null},
+    //                 compress: false
+    //             }
+    //         })
+    //     );
+    // }
+
+    // sendHeartbeatSetTimeout(connection) {
+    //     this.sendHeardBeat(connection);
+    //     setTimeout(() => {
+    //         this.sendHeartbeatSetTimeout(connection);
+    //     }, 42000);
+    // }
+
+    // sendHeardBeat(connection) {
+    //     var msg = {
+    //         op: 1,
+    //         d: this.seq
+    //     };
+    //     console.log("heartbeat sent: " + JSON.stringify(msg));
+    //     connection.sendUTF(JSON.stringify(msg));
+    // }
+
+    // closeConnection() {
+    //     if (this.connection) {
+    //         this.connection.drop();
+    //     }
+    // }
+
+    handleConnect(connection) {
+
+        this.connection = connection;
+
+        connection.on("error", error => {
+            this.handleError(error);
+        });
+
+        connection.on("close", () => {
+            this.handleClose();
+        });
+
+        connection.on("message", message => {
+            this.handleMessage(message);
+
+        });
+
+        if (this.onConnect) {
+            this.onConnect();
         }
-      });
+    }
 
-      connection.on("message", message => {
+    handleError(error) {
+        if (this.onError) {
+            this.onError(error);
+        }
+    }
+
+    handleClose() {
+        if (this.onClose) {
+            this.onClose();
+        }
+    }
+
+    handleMessage(message) {
         if (message.type === "utf8") {
-          let dmsg = JSON.parse(message.utf8Data);
-          this.seq = dmsg.s;
-          self.processMessage(dmsg);
+            let messageObject = JSON.parse(message.utf8Data);
+            if (this.onMessage) {
+                this.onMessage(messageObject);
+            }
         }
-      });
-    });
 
-    this.client.connect(serverUrl);
-  }
-
-  sendIdent(connection, apiKey = config.apiKey) {
-    connection.sendUTF(
-      JSON.stringify({
-        op: 2,
-        d: {
-          token: apiKey,
-          properties: {
-            os: "Windows",
-            browser: "Chrome",
-            device: "",
-            browser_user_agent:
-              "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36",
-            browser_version: "67.0.3396.99",
-            os_version: "10",
-            referrer: "https://discordapp.com/",
-            referring_domain: "discordapp.com",
-            referrer_current: "https://discordapp.com/",
-            referring_domain_current: "discordapp.com",
-            release_channel: "stable",
-            client_build_number: 18947
-          },
-          presence: { status: "online", since: 0, afk: false, game: null },
-          compress: false
+        if (this.logMessages) {
+            console.log(msg);
         }
-      })
-    );
-  }
-
-  sendHeartbeatSetTimeout(connection) {
-    this.sendHeardBeat(connection);
-    setTimeout(() => {
-      this.sendHeartbeatSetTimeout(connection);
-    }, 42000);
-  }
-
-  sendHeardBeat(connection) {
-    var msg = {
-      op: 1,
-      d: this.seq
-    };
-    console.log("heartbeat sent: " + JSON.stringify(msg));
-    connection.sendUTF(JSON.stringify(msg));
-  }
-
-  closeConnection() {
-    if (this.connection) {
-      this.connection.drop();
     }
-  }
 
-  processMessage(msg) {
-    if (this.onMessage) {
-      this.onMessage(msg);
+    sendMessage(message) {
+
+        if (this.connection) {
+            this.connection.sendUTF(
+                JSON.stringify(message));
+            return;
+        }
+
+        throw Error("no connection");
     }
-    if (this.logMessages) {
-      console.log(msg);
-    }
-  }
+
+
 }
 
 module.exports = WebSocketClient;

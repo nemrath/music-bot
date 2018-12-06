@@ -5,7 +5,9 @@ const Discord = require("discord.js");
 const DiscordApi = require("./DiscordApi");
 const Player = require("./Player");
 const MessageFormatter = require("./MessageFormatter");
+const TrackSearcher = require("./TrackSearcher");
 const sleep = require("util").promisify(setTimeout);
+const VoiceConnection = require("./VoiceConnection");
 
 class MusicBot {
     constructor() {
@@ -62,7 +64,7 @@ class MusicBot {
                 return await message.channel.send(this.createQueueMessage());
             }
             case Meaning.SEARCH_TRACK: {
-                let tracks = await Player.search(meaning.query);
+                let tracks = await TrackSearcher.search(meaning.query);
                 if (tracks.length) {
                     this.waitingForSearchResultChoice = true;
                     this.searchResults = tracks;
@@ -71,7 +73,7 @@ class MusicBot {
                 return await message.channel.send(MusicBot.createSearchResultsMessage(tracks));
             }
             case Meaning.SHOW_SEARCH_RESULT_PAGE: {
-                if(this.waitingForSearchResultChoice &&  this.searchResults.length > 0) {
+                if (this.waitingForSearchResultChoice && this.searchResults.length > 0) {
                     return await message.channel.send(MusicBot.createSearchResultsMessage(this.searchResults, meaning.pageNr - 1));
                 }
                 break;
@@ -161,6 +163,9 @@ class MusicBot {
                 }
                 return result;
             }
+            case Meaning.SEEK: {
+                return this.player.seek(parseInt(meaning.time));
+            }
             case Meaning.PAUSE_MUSIC: {
                 return this.player.pause();
             }
@@ -187,10 +192,12 @@ class MusicBot {
         }
     }
 
-    // setVoiceChannel(voiceChannel) {
-    //     this.voiceChannel = voiceChannel;
-    // }
-    async joinVoiceChannel(voiceChannel) {
+    async joinVoiceChannel(channelId) {
+        let voiceConnection = new VoiceConnection(channelId);
+        voiceConnection.playStream(this.player.getStream());
+        return voiceConnection;
+    }
+    async joinVoiceChannelUsingChannel(voiceChannel) {
         this.voiceChannel = voiceChannel;
         let connection = await this.voiceChannel.join();
 
@@ -204,7 +211,7 @@ class MusicBot {
     async joinUsingMessage(message) {
 
         if (message.member.voiceChannel) {
-            let connection = await this.joinVoiceChannel(message.member.voiceChannel);
+            let connection = await this.joinVoiceChannelUsingChannel(message.member.voiceChannel);
             if (!connection) {
                 throw Error("could not join the voice channel");
             }
@@ -282,11 +289,14 @@ class MusicBot {
             footerFields: [
                 {name: "Now playing:", value: nowPlayingString}
             ],
-            footer: {text: 'Page xxxx/xxxx (xxxx  entries)' }
+            footer: {text: 'Page xxxx/xxxx (xxxx  entries)'}
         });
 
         let message = messages[pageNr];
-        return new Discord.RichEmbed({...message, footer:{text: 'Page '+ (pageNr + 1)+'/'+messages.length+' (' + queueLength + '  entries)' }});
+        return new Discord.RichEmbed({
+            ...message,
+            footer: {text: 'Page ' + (pageNr + 1) + '/' + messages.length + ' (' + queueLength + '  entries)'}
+        });
     }
 
     createNowPlayingString() {
@@ -354,18 +364,21 @@ class MusicBot {
         resultsArray = resultsArray.length ? resultsArray : "Try a different query.";
 
         let messages = MessageFormatter.createMessages({
-            title: tracks.length ? "Choose a number, type " + config.commandPrefix + "cancel to cancel or "  + config.commandPrefix + "s x to go to page x:" : "No results found",
+            title: tracks.length ? "Choose a number, type " + config.commandPrefix + "cancel to cancel or " + config.commandPrefix + "s x to go to page x:" : "No results found",
 
             fields: [{
-                name:"Results:",
+                name: "Results:",
                 value: resultsArray
             }
             ],
-            footer: {text: 'Page xxxx/xxxx (xxxx  entries)' }
+            footer: {text: 'Page xxxx/xxxx (xxxx  entries)'}
         });
 
         let message = messages[pageNr];
-        return new Discord.RichEmbed({...message, footer:{text: 'Page '+ (pageNr + 1)+'/'+messages.length+' (' + tracks.length + '  results)' }});
+        return new Discord.RichEmbed({
+            ...message,
+            footer: {text: 'Page ' + (pageNr + 1) + '/' + messages.length + ' (' + tracks.length + '  results)'}
+        });
     }
 }
 

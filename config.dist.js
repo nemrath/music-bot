@@ -14,6 +14,8 @@ let config = {
     spotifyClientID: oink,
     spotifySecret: oink,
     spotifyBaseUrl: 'https://open.spotify.com',
+    youtubeApiUrl: "https://www.googleapis.com/youtube/v3",
+    botId:"513436827433173018",
 };
 
 module.exports = config;
